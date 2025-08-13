@@ -1,0 +1,190 @@
+# 의존성
+node_modules/
+client/node_modules/
+server/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 환경 변수
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 빌드 출력
+build/
+dist/
+client/build/
+client/dist/
+server/build/
+server/dist/
+.next/
+out/
+
+# 로그 파일
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# 런타임 데이터
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 커버리지 디렉토리
+coverage/
+*.lcov
+
+# nyc 테스트 커버리지
+.nyc_output
+
+# Grunt 중간 저장소
+.grunt
+
+# Bower 의존성 디렉토리
+bower_components
+
+# node-waf 설정
+.lock-wscript
+
+# 컴파일된 바이너리 애드온
+build/Release
+
+# 의존성 디렉토리
+jspm_packages/
+
+# TypeScript v1 선언 파일
+typings/
+
+# TypeScript 캐시
+*.tsbuildinfo
+
+# 선택적 npm 캐시 디렉토리
+.npm
+
+# 선택적 eslint 캐시
+.eslintcache
+
+# Microbundle 캐시
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# 선택적 REPL 히스토리
+.node_repl_history
+
+# 출력 'npm pack'
+*.tgz
+
+# Yarn 무결성 파일
+.yarn-integrity
+
+# dotenv 환경 변수 파일
+.env.test
+
+# parcel-bundler 캐시
+.cache
+.parcel-cache
+
+# Next.js 빌드 출력
+.next
+
+# Nuxt.js 빌드 / 생성 출력
+.nuxt
+dist
+
+# Gatsby 파일
+.cache/
+public
+
+# Storybook 빌드 출력
+.out
+.storybook-out
+
+# 임시 폴더
+tmp/
+temp/
+
+# 에디터 디렉토리 및 파일
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 생성 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python/가상환경
+venv/
+__pycache__/
+*.py[cod]
+
+# Docker
+.dockerignore
+
+# 업로드된 파일
+uploads/
+server/uploads/
+
+# SSL 인증서
+nginx/ssl/
+*.pem
+*.key
+*.crt
+
+# 데이터베이스 백업
+*.sql
+*.dump
+
+# Redis 덤프
+dump.rdb
+
+# RabbitMQ 데이터
+rabbitmq_data/
+
+# 패키지 매니저/캐시
+.pnpm-store/
+pnpm-debug.log*
+
+# 파이썬/도구 캐시
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+coverage*.xml
+
+# 기타 로컬 환경
+.envrc
+.direnv/
+
+# 스토리북 산출물
+storybook-static/
+
+# 에디터/툴 로컬 데이터 및 캐시
+.codeium/
+.cursor/
+.windsurf/
+.vs/
+.gradle/
+.history/
+.localhistory/
+.cache/
+.vite/
+Desktop.ini
+
