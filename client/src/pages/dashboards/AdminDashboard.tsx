@@ -13,10 +13,14 @@ type TabKey = 'students' | 'teachers' | 'courses' | 'topics' | 'questions';
 
 function useApi() {
   const token = useAuthStore((s) => s.token);
-  const baseUrl = useMemo(() => process.env.REACT_APP_API_URL || 'http://localhost:5000', []);
+	const baseUrl = useMemo(() => {
+		const base = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+		const normalizedBase = base.replace(/\/+$/, '');
+		return normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
+	}, []);
 
   async function request(path: string, options?: RequestInit) {
-    const res = await fetch(`${baseUrl}${path}`, {
+		const res = await fetch(`${baseUrl}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -48,8 +52,8 @@ function StudentsPanel() {
   const [form, setForm] = useState<Student>({ id: '', name: '', email: '', classroom: '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    const data = await request('/api/admin/students');
+	async function load() {
+		const data = await request('/admin/students');
     setItems(data.items || []);
   }
 
@@ -57,16 +61,16 @@ function StudentsPanel() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function save() {
+	async function save() {
     setError(null);
-    await request('/api/admin/students', { method: 'POST', body: JSON.stringify(form) });
+		await request('/admin/students', { method: 'POST', body: JSON.stringify(form) });
     setForm({ id: '', name: '', email: '', classroom: '' });
     await load();
   }
 
-  async function remove(id: string) {
+	async function remove(id: string) {
     setError(null);
-    await request(`/api/admin/students/${encodeURIComponent(id)}`, { method: 'DELETE' });
+		await request(`/admin/students/${encodeURIComponent(id)}`, { method: 'DELETE' });
     await load();
   }
 
@@ -105,8 +109,8 @@ function TeachersPanel() {
   const [form, setForm] = useState<Teacher>({ id: '', name: '', email: '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    const data = await request('/api/admin/teachers');
+	async function load() {
+		const data = await request('/admin/teachers');
     setItems(data.items || []);
   }
 
@@ -114,16 +118,16 @@ function TeachersPanel() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function save() {
+	async function save() {
     setError(null);
-    await request('/api/admin/teachers', { method: 'POST', body: JSON.stringify(form) });
+		await request('/admin/teachers', { method: 'POST', body: JSON.stringify(form) });
     setForm({ id: '', name: '', email: '' });
     await load();
   }
 
-  async function remove(id: string) {
+	async function remove(id: string) {
     setError(null);
-    await request(`/api/admin/teachers/${encodeURIComponent(id)}`, { method: 'DELETE' });
+		await request(`/admin/teachers/${encodeURIComponent(id)}`, { method: 'DELETE' });
     await load();
   }
 
@@ -160,8 +164,8 @@ function CoursesPanel() {
   const [form, setForm] = useState<Course>({ code: '', title: '', description: '', teacherId: '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    const data = await request('/api/admin/courses');
+	async function load() {
+		const data = await request('/admin/courses');
     setItems(data.items || []);
   }
 
@@ -169,16 +173,16 @@ function CoursesPanel() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function save() {
+	async function save() {
     setError(null);
-    await request('/api/admin/courses', { method: 'POST', body: JSON.stringify(form) });
+		await request('/admin/courses', { method: 'POST', body: JSON.stringify(form) });
     setForm({ code: '', title: '', description: '', teacherId: '' });
     await load();
   }
 
-  async function remove(code: string) {
+	async function remove(code: string) {
     setError(null);
-    await request(`/api/admin/courses/${encodeURIComponent(code)}`, { method: 'DELETE' });
+		await request(`/admin/courses/${encodeURIComponent(code)}`, { method: 'DELETE' });
     await load();
   }
 
@@ -216,8 +220,8 @@ function TopicsPanel() {
   const [form, setForm] = useState<Topic>({ id: '', courseCode: '', name: '', description: '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    const data = await request('/api/admin/topics');
+	async function load() {
+		const data = await request('/admin/topics');
     setItems(data.items || []);
   }
 
@@ -225,16 +229,16 @@ function TopicsPanel() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function save() {
+	async function save() {
     setError(null);
-    await request('/api/admin/topics', { method: 'POST', body: JSON.stringify(form) });
+		await request('/admin/topics', { method: 'POST', body: JSON.stringify(form) });
     setForm({ id: '', courseCode: '', name: '', description: '' });
     await load();
   }
 
-  async function remove(id: string) {
+	async function remove(id: string) {
     setError(null);
-    await request(`/api/admin/topics/${encodeURIComponent(id)}`, { method: 'DELETE' });
+		await request(`/admin/topics/${encodeURIComponent(id)}`, { method: 'DELETE' });
     await load();
   }
 
@@ -272,8 +276,8 @@ function QuestionsPanel() {
   const [form, setForm] = useState<Question>({ id: '', type: 'mcq', difficulty: '중', topicId: '', text: '', choices: ['', '', '', ''], answer: '', explanation: '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    const data = await request('/api/admin/questions');
+	async function load() {
+		const data = await request('/admin/questions');
     setItems(data.items || []);
   }
 
@@ -281,16 +285,16 @@ function QuestionsPanel() {
     load().catch((e) => setError(e.message));
   }, []);
 
-  async function save() {
+	async function save() {
     setError(null);
-    await request('/api/admin/questions', { method: 'POST', body: JSON.stringify(form) });
+		await request('/admin/questions', { method: 'POST', body: JSON.stringify(form) });
     setForm({ id: '', type: 'mcq', difficulty: '중', topicId: '', text: '', choices: ['', '', '', ''], answer: '', explanation: '' });
     await load();
   }
 
-  async function remove(id: string) {
+	async function remove(id: string) {
     setError(null);
-    await request(`/api/admin/questions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+		await request(`/admin/questions/${encodeURIComponent(id)}`, { method: 'DELETE' });
     await load();
   }
 

@@ -567,6 +567,55 @@ docker-compose up server -d
 docker-compose up client -d
 ```
 
+### ⏯️ 클라이언트/서버 종료 및 재시작
+
+#### 개발 모드 (npm)
+
+- 종료
+```bash
+# 실행 중인 터미널에서
+Ctrl + C
+```
+
+- 재시작
+```bash
+# 서버만 재시작 (새 터미널)
+npm run server:dev
+
+# 클라이언트만 재시작 (새 터미널)
+npm run client:dev
+
+# 전체(서버+클라이언트) 동시 재시작
+npm run dev
+```
+
+> 참고: 포트가 점유되어 종료가 안 되면 아래 "🚨 일반적인 문제 해결 > 포트 충돌 문제"를 참고하세요.
+
+#### Docker 모드
+
+- 종료
+```bash
+docker-compose stop server
+docker-compose stop client
+```
+
+- 재시작
+```bash
+# 간단 재시작
+docker-compose restart server
+docker-compose restart client
+
+# 또는 정지 후 백그라운드 실행
+docker-compose up server -d
+docker-compose up client -d
+```
+
+- 로그 확인
+```bash
+docker-compose logs -f server
+docker-compose logs -f client
+```
+
 ### 💻 개발 모드로 실행
 
 #### 1. 데이터베이스 서비스 실행
