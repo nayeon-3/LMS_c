@@ -16,26 +16,63 @@ type TabKey = 'admins' | 'students' | 'teachers' | 'courses' | 'topics' | 'quest
 
 function useApi() {
   const token = useAuthStore((s) => s.token);
-	const baseUrl = useMemo(() => {
-		const base = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-		const normalizedBase = base.replace(/\/+$/, '');
-		return normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
-	}, []);
+  console.log('Current token:', token ? 'Token exists' : 'No token found');
+  
+  // Use relative URL for API requests
+  const apiBaseUrl = useMemo(() => {
+    // In development, this will be proxied to the backend server
+    return ''; // Empty string will make requests relative to the current domain
+  }, [token]);
 
   async function request(path: string, options?: RequestInit) {
-		const res = await fetch(`${baseUrl}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-        ...(options && options.headers ? options.headers : {}),
-      },
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({} as any));
-      throw new Error(body?.message || '요청 실패');
+    // Ensure path starts with /api
+    const apiPath = path.startsWith('/api/') ? path : 
+                   path.startsWith('/') ? `/api${path}` : `/api/${path}`;
+    const url = `${apiPath}`; // Use relative URL
+    
+    console.log(`[API Request] ${options?.method || 'GET'} ${url}`);
+    
+    try {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          ...(options?.headers || {}),
+        },
+        credentials: 'include', // Include cookies in the request
+      });
+      
+      // Handle non-JSON responses
+      const contentType = res.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.warn('Non-JSON response:', text);
+        data = { message: text };
+      }
+      
+      console.log(`[API Response] ${res.status} ${res.statusText}`, data);
+      
+      if (!res.ok) {
+        const error = new Error(data?.message || `Request failed with status ${res.status}`);
+        (error as any).status = res.status;
+        (error as any).data = data;
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('API request failed:', {
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw error;
     }
-    return res.json();
   }
 
   return { request };
@@ -110,9 +147,17 @@ function StudentsPanel() {
   const [form, setForm] = useState<Student>({ id: '', name: '', email: '', classroom: '' });
   const [error, setError] = useState<string | null>(null);
 
-	async function load() {
-		const data = await request('/admin/students');
-    setItems(data.items || []);
+  async function load() {
+    try {
+      console.log('Loading students data...');
+      const data = await request('/admin/students');
+      console.log('Students data loaded:', data);
+      setItems(data.items || []);
+    } catch (error: any) {
+      console.error('Error loading students:', error);
+      setError(error.message || '학생 목록을 불러오는 중 오류가 발생했습니다.');
+      setItems([]);
+    }
   }
 
   useEffect(() => {

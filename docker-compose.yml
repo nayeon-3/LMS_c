@@ -146,15 +146,24 @@ services:
       dockerfile: Dockerfile
     container_name: lms_client
     environment:
-      REACT_APP_API_URL: http://localhost:5000
-      REACT_APP_ENV: production
+      REACT_APP_API_URL: http://server:5000  # 서비스명을 사용하도록 변경
+      REACT_APP_ENV: development  # 개발 모드로 변경
+      NODE_ENV: development  # 개발 모드 설정
+      CHOKIDAR_USEPOLLING: 'true'  # 파일 감지 활성화
+      WDS_SOCKET_PORT: 0  # WebSocket 포트 충돌 방지
     ports:
-      - "3000:80"
+      - "3000:3000"  # 개발 서버 포트로 변경
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - /app/node_modules  # 컨테이너의 node_modules 유지
     depends_on:
       - server
     networks:
       - lms_network
     restart: unless-stopped
+    stdin_open: true  # 인터랙티브 모드 활성화
+    tty: true  # TTY 할당
 
   # Nginx 리버스 프록시
   nginx:

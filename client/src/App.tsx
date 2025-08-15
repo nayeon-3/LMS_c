@@ -21,8 +21,22 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/teacher" element={<TeacherDashboard />} />
-        <Route path="/student" element={<StudentDashboard />} />
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute roles={['teacher']}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute roles={['student']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

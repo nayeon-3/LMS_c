@@ -1,35 +1,28 @@
-# 빌드 단계
-FROM node:18-alpine AS builder
+# 개발 환경용 Dockerfile
+FROM node:18-alpine
 
 WORKDIR /app
+
+# 환경 변수 설정
+ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=true
+ENV WDS_SOCKET_PORT=0
 
 # 패키지 파일 복사
 COPY package*.json ./
 
-# 의존성 설치
+# 의존성 설치 (개발 의존성 포함)
 RUN npm install
 
 # 소스 코드 복사
 COPY . .
 
-# 프로덕션 빌드
-RUN npm run build
-
-# 프로덕션 단계
-FROM nginx:alpine
-
-# Nginx 설정 복사
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# 빌드된 파일 복사
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# 포트 노출
-EXPOSE 80
+# 개발 서버 실행 (포트 3000)
+EXPOSE 3000
 
 # 헬스 체크
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:80/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
 
-# Nginx 실행
-CMD ["nginx", "-g", "daemon off;"]
+# 개발 서버 실행
+CMD ["npm", "start"]

@@ -19,13 +19,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
   async login({ id, password, role }) {
-    const base = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-    const normalizedBase = base.replace(/\/+$/, '');
-    const apiRoot = normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
+    // Use relative URL for API requests in the browser
+    const apiRoot = '/api';
+    console.log(`Attempting login to: ${apiRoot}/auth/${role}/login`);
+    
     const res = await fetch(`${apiRoot}/auth/${role}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, password })
+      body: JSON.stringify({ id, password }),
+      credentials: 'include'  // Important for cookies/sessions
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
