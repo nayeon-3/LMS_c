@@ -122,7 +122,7 @@ function AdminsPanel() {
         <TextField label="관리자ID" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
         <TextField label="이름(표시명)" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
         <TextField label="이메일" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <Button variant="contained" onClick={save}>추가/수정</Button>
+        <Button variant="contained" onClick={save}>추가</Button>
       </Stack>
       <Divider />
       <Stack spacing={1}>
@@ -144,7 +144,7 @@ function AdminsPanel() {
 function StudentsPanel() {
   const { request } = useApi();
   const [items, setItems] = useState<Student[]>([]);
-  const [form, setForm] = useState<Student>({ id: '', name: '', email: '', classroom: '' });
+  const [form, setForm] = useState<{ id: string; name: string; email?: string; classroom?: string; password?: string }>({ id: '', name: '', email: '', classroom: '', password: '' });
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -167,7 +167,7 @@ function StudentsPanel() {
 	async function save() {
     setError(null);
 		await request('/admin/students', { method: 'POST', body: JSON.stringify(form) });
-    setForm({ id: '', name: '', email: '', classroom: '' });
+  setForm({ id: '', name: '', email: '', classroom: '', password: '' });
     await load();
   }
 
@@ -186,7 +186,8 @@ function StudentsPanel() {
         <TextField label="이름" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <TextField label="이메일" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <TextField label="반" value={form.classroom} onChange={(e) => setForm({ ...form, classroom: e.target.value })} />
-        <Button variant="contained" onClick={save}>추가/수정</Button>
+        <TextField label="비밀번호" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" />
+        <Button variant="contained" onClick={save}>추가</Button>
       </Stack>
       <Divider />
       <Stack spacing={1}>
@@ -242,7 +243,7 @@ function TeachersPanel() {
         <TextField label="교사ID" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
         <TextField label="이름" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <TextField label="이메일" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <Button variant="contained" onClick={save}>추가/수정</Button>
+        <Button variant="contained" onClick={save}>추가</Button>
       </Stack>
       <Divider />
       <Stack spacing={1}>
@@ -299,7 +300,7 @@ function CoursesPanel() {
         <TextField label="담당교사ID" value={form.teacherId} onChange={(e) => setForm({ ...form, teacherId: e.target.value })} />
       </Stack>
       <TextField label="설명" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} multiline minRows={2} />
-      <Button variant="contained" onClick={save}>추가/수정</Button>
+      <Button variant="contained" onClick={save}>추가</Button>
       <Divider />
       <Stack spacing={1}>
         {items.map((c) => (
@@ -355,7 +356,7 @@ function TopicsPanel() {
         <TextField label="이름" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </Stack>
       <TextField label="설명" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} multiline minRows={2} />
-      <Button variant="contained" onClick={save}>추가/수정</Button>
+      <Button variant="contained" onClick={save}>추가</Button>
       <Divider />
       <Stack spacing={1}>
         {items.map((t) => (
@@ -428,7 +429,7 @@ function QuestionsPanel() {
           <TextField label="정답" value={form.answer || ''} onChange={(e) => setForm({ ...form, answer: e.target.value })} />
           <TextField label="해설" value={form.explanation || ''} onChange={(e) => setForm({ ...form, explanation: e.target.value })} />
         </Stack>
-        <Button variant="contained" onClick={save}>추가/수정</Button>
+        <Button variant="contained" onClick={save}>추가</Button>
       </Stack>
       <Divider />
       <Stack spacing={1}>

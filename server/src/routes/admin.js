@@ -436,45 +436,34 @@ router.post('/students', async (req, res) => {
       await connectPostgres();
       const pwd = password || null;
       const hash = pwd ? (pwd.startsWith('$2') ? pwd : await bcrypt.hash(pwd, 10)) : null;
-      const sql = `
-        WITH r AS (
-          SELECT role_id FROM roles WHERE name='student' LIMIT 1
-        ), u AS (
-          INSERT INTO users (id, name, email, password, role_id)
-          VALUES ($1, $2, $3, COALESCE($4, (SELECT password FROM users WHERE id=$1)), (SELECT role_id FROM r))
-          ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            email = EXCLUDED.email,
-            password = EXCLUDED.password,
-            role_id = EXCLUDED.role_id
-          RETURNING user_id
-        )
-        INSERT INTO students (student_id, class_group)
-        VALUES ((SELECT user_id FROM u), $5)
-        ON CONFLICT (student_id) DO UPDATE SET
-          class_group = EXCLUDED.class_group
+      // 1. users 테이블에 먼저 INSERT/UPDATE 후 user_id를 받아옴
+      // role_id를 무조건 3(학생)으로 지정
+      // 플레이스홀더를 각 컬럼마다 별도로 사용하고, 명시적 캐스팅 적용
+      const userSql = `
+        INSERT INTO users (id, name, email, password, role_id)
+        VALUES ($1::varchar, $2::varchar, $3::varchar, COALESCE($4::varchar, (SELECT password FROM users WHERE id=$5::varchar)), 3)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          email = EXCLUDED.email,
+          password = EXCLUDED.password,
+          role_id = 3
+        RETURNING user_id;
       `;
-      await pgQuery(sql, [id, name, email || null, hash, classroom || null]);
+      const userRes = await pgQuery(userSql, [id, name, email || null, hash, id]);
+      const userId = userRes.rows[0]?.user_id;
+      if (!userId) throw new Error('user_id 생성 실패');
+      // 2. students 테이블에 user_id(INT)로 INSERT/UPDATE
+      const studentSql = `
+        INSERT INTO students (student_id, class_group)
+        VALUES ($1, $2)
+        ON CONFLICT (student_id) DO UPDATE SET
+          class_group = EXCLUDED.class_group;
+      `;
+      await pgQuery(studentSql, [userId, classroom || null]);
       created = { id, name, email, classroom };
     } else {
-      try {
-        const conn = await ensureMongo();
-        await conn.collection('students').updateOne({ id }, { $set: { id, name, email, classroom } }, { upsert: true });
-        created = { id, name, email, classroom };
-      } catch (_) {}
-      if (!created) {
-        await connectPostgres();
-        const sql = `
-          INSERT INTO students (id, name, email, classroom)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            email = EXCLUDED.email,
-            classroom = EXCLUDED.classroom
-        `;
-        await pgQuery(sql, [id, name, email || null, classroom || null]);
-        created = { id, name, email, classroom };
-      }
+      // fallback: students 테이블에 id, name, email, classroom을 직접 넣는 쿼리 제거 (스키마 불일치 방지)
+      return res.status(500).json({ message: '학생 생성/수정 실패', error: '데이터베이스 스키마 불일치: students 테이블에 id, name, email, classroom 컬럼이 없습니다.' });
     }
     res.status(201).json(created);
   } catch (err) {
