@@ -9,6 +9,49 @@ async function ensureCollection(db, name, options) {
   const exists = await db.listCollections({ name }).hasNext();
   if (!exists) {
     await db.createCollection(name, options);
+  } else if (options && options.validator) {
+    // 기존 컬렉션의 validator 업데이트
+    try {
+      await db.command({ collMod: name, validator: options.validator });
+      // 필요한 경우 validationLevel/Action도 조정 가능
+    } catch (e) {
+      console.warn(`⚠️  collMod 실패 (${name}):`, e.message);
+    }
+  }
+}
+
+// [ADDED] 역할별 프로파일 1회 백필: 기존 users는 손대지 않고, 누락된 프로파일만 생성
+async function syncRoleProfilesOnce(db) {
+  const usersCol = db.collection('users');
+  const studentsCol = db.collection('students');
+  const teachersCol = db.collection('teachers');
+
+  // 학생: users.role === 'student' 이고 students.userId가 없는 경우만 생성
+  const studentCursor = usersCol.find({ role: 'student' }, { projection: { _id: 1 } });
+  while (await studentCursor.hasNext()) {
+    const u = await studentCursor.next();
+    const exists = await studentsCol.findOne({ userId: u._id }, { projection: { _id: 1 } });
+    if (!exists) {
+      await studentsCol.insertOne({
+        userId: u._id,
+        status: 'active',
+        createdAt: new Date()
+      });
+    }
+  }
+
+  // 교사: users.role === 'teacher' 이고 teachers.userId가 없는 경우만 생성
+  const teacherCursor = usersCol.find({ role: 'teacher' }, { projection: { _id: 1 } });
+  while (await teacherCursor.hasNext()) {
+    const u = await teacherCursor.next();
+    const exists = await teachersCol.findOne({ userId: u._id }, { projection: { _id: 1 } });
+    if (!exists) {
+      await teachersCol.insertOne({
+        userId: u._id,
+        status: 'active',
+        createdAt: new Date()
+      });
+    }
   }
 }
 
@@ -35,7 +78,7 @@ async function migrateMongoDB() {
             password: { bsonType: "string" },
             email: { bsonType: "string", pattern: "^.+@.+\\..+$" },
             fullName: { bsonType: "string" },
-            role: { enum: ["admin", "instructor", "student"] },
+            role: { enum: ["admin", "teacher", "student"] }, // teacher 사용
             createdAt: { bsonType: "date" }
           }
         }
@@ -56,24 +99,39 @@ async function migrateMongoDB() {
         }
       }
     });
-    
-    // 과목 컬렉션 생성
-    await ensureCollection(db, "courses", {
+
+    // [ADDED] 교사 프로파일 컬렉션 생성
+    await ensureCollection(db, "teachers", {
       validator: {
         $jsonSchema: {
           bsonType: "object",
-          required: ["code", "name", "instructorId"],
+          required: ["userId"],
           properties: {
-            code: { bsonType: "string" },
-            name: { bsonType: "string" },
-            description: { bsonType: "string" },
-            instructorId: { bsonType: "objectId" }
+            userId: { bsonType: "objectId" },
+            dept: { bsonType: "string" },
+            status: { enum: ["active", "inactive"] }
           }
         }
       }
     });
     
-    // 주제 컬렉션 생성
+    // 과목 컬렉션 생성 (PostgreSQL 양식에 맞춰 name, teacherId 사용)
+    await ensureCollection(db, "courses", {
+      validator: {
+        $jsonSchema: {
+          bsonType: "object",
+          required: ["code", "name", "teacherId"],
+          properties: {
+            code: { bsonType: "string" },
+            name: { bsonType: "string" },
+            description: { bsonType: "string" },
+            teacherId: { bsonType: "objectId" } // teacherId 사용
+          }
+        }
+      }
+    });
+    
+    // 주제 컬렉션 생성 (courseId 참조)
     await ensureCollection(db, "topics", {
       validator: {
         $jsonSchema: {
@@ -88,7 +146,7 @@ async function migrateMongoDB() {
       }
     });
     
-    // 문제은행 컬렉션 생성
+    // 문제은행 컬렉션 생성 (prompt 필드 사용)
     await ensureCollection(db, "questionBank", {
       validator: {
         $jsonSchema: {
@@ -218,9 +276,14 @@ async function migrateMongoDB() {
     
     await db.collection("students").createIndex({ "userId": 1 }, { unique: true });
     await db.collection("students").createIndex({ "status": 1 });
+
+    // [ADDED] teachers 인덱스
+    await db.collection("teachers").createIndex({ "userId": 1 }, { unique: true });
+    await db.collection("teachers").createIndex({ "status": 1 });
     
     await db.collection("courses").createIndex({ "code": 1 }, { unique: true });
-    await db.collection("courses").createIndex({ "instructorId": 1 });
+    // [FIX] teacherId로 인덱스 생성 (기존 instructorId 오타 수정)
+    await db.collection("courses").createIndex({ "teacherId": 1 });
     
     await db.collection("topics").createIndex({ "courseId": 1 });
     
@@ -248,6 +311,11 @@ async function migrateMongoDB() {
     await db.collection("performanceStats").createIndex({ "studentId": 1, "topicId": 1, "statDate": 1 });
     
     console.log('✅ MongoDB 인덱스가 성공적으로 생성되었습니다!');
+
+    // [ADDED] 역할→프로파일 1회 백필(기존 문서는 수정하지 않음)
+    console.log('🔄 역할-프로파일 백필 실행(누락된 문서만 생성)...');
+    await syncRoleProfilesOnce(db);
+    console.log('✅ 백필 완료!');
     
     // 컬렉션 목록 확인
     const collections = await db.listCollections().toArray();

@@ -5,7 +5,7 @@
 ## 📊 데이터베이스 구조
 
 ### PostgreSQL (관계형 데이터)
-- **users**: 사용자 정보 (admin, instructor, student)
+- **users**: 사용자 정보 (admin, teacher, student)
 - **roles**: 사용자 역할 정의
 - **students**: 학생 프로파일 정보
 - **courses**: 과목 정보

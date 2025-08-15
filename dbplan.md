@@ -8,16 +8,24 @@ CREATE TABLE roles (
 CREATE TABLE users (
     user_id    SERIAL PRIMARY KEY,
     role_id    INT NOT NULL REFERENCES roles(role_id),
-    username   VARCHAR(50) NOT NULL UNIQUE,
+    id   VARCHAR(50) NOT NULL UNIQUE,
     password   VARCHAR(255) NOT NULL,docker compose up -d postgres mongodb
     email      VARCHAR(100) NOT NULL UNIQUE,
-    full_name  VARCHAR(100),
+    name  VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 학생 정보 (users.role_id = student)
+-- 교사 정보 (users.role_id = 2)
+CREATE TABLE teachers (
+    teacher_id  INT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    dept        VARCHAR(100),
+    status      VARCHAR(20) DEFAULT 'active'
+);
+
+-- 학생 정보 (users.role_id = 3)
 CREATE TABLE students (
-    student_id   INT PRIMARY KEY REFERENCES users(user_id),
+    student_id   INT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
     class_group  VARCHAR(50),
     status       VARCHAR(20) DEFAULT 'active'
 );
@@ -28,7 +36,7 @@ CREATE TABLE courses (
     code        VARCHAR(20) NOT NULL UNIQUE,
     name        VARCHAR(100) NOT NULL,
     description TEXT,
-    instructor_id INT REFERENCES users(user_id)
+    teacher_id INT REFERENCES users(user_id)
 );
 
 CREATE TABLE topics (
@@ -133,16 +141,31 @@ db.createCollection("users", {
   }
 });
 
-// 학생 프로파일 (users.role='student')
-db.createCollection("students", {
+// 학생 프로파일 컬렉션 생성
+await ensureCollection(db, "students", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
       required: ["userId"],
       properties: {
-        userId:     { bsonType: "objectId" },
+        userId: { bsonType: "objectId" },
         classGroup: { bsonType: "string" },
-        status:     { enum: ["active","inactive"] }
+        status: { enum: ["active", "inactive"] }
+      }
+    }
+  }
+});
+
+// [ADDED] 교사 프로파일 컬렉션 생성
+await ensureCollection(db, "teachers", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        dept: { bsonType: "string" },
+        status: { enum: ["active", "inactive"] }
       }
     }
   }

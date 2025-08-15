@@ -236,10 +236,10 @@ function TeachersPanel() {
 
   return (
     <Stack spacing={3}>
-      <SectionHeader title="강사 관리" />
+      <SectionHeader title="교사 관리" />
       {error ? <Alert severity="error">{error}</Alert> : null}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="강사ID" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
+        <TextField label="교사ID" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
         <TextField label="이름" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <TextField label="이메일" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <Button variant="contained" onClick={save}>추가/수정</Button>
@@ -296,7 +296,7 @@ function CoursesPanel() {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField label="과목코드" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
         <TextField label="과목명" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <TextField label="담당강사ID" value={form.teacherId} onChange={(e) => setForm({ ...form, teacherId: e.target.value })} />
+        <TextField label="담당교사ID" value={form.teacherId} onChange={(e) => setForm({ ...form, teacherId: e.target.value })} />
       </Stack>
       <TextField label="설명" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} multiline minRows={2} />
       <Button variant="contained" onClick={save}>추가/수정</Button>
@@ -306,7 +306,7 @@ function CoursesPanel() {
           <Stack key={c.code} direction="row" alignItems="center" spacing={2}>
             <Box sx={{ width: 120 }}><Typography variant="body2">{c.code}</Typography></Box>
             <Box sx={{ flex: 1 }}><Typography>{c.title}</Typography></Box>
-            <Box sx={{ width: 160 }}><Typography variant="body2">강사: {c.teacherId}</Typography></Box>
+            <Box sx={{ width: 160 }}><Typography variant="body2">교사: {c.teacherId}</Typography></Box>
             <IconButton aria-label="delete" color="error" onClick={() => remove(c.code)}>
               <DeleteIcon />
             </IconButton>
@@ -542,7 +542,7 @@ function AdminDashboard() {
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab label="관리자" value="admins" />
           <Tab label="학생" value="students" />
-          <Tab label="강사" value="teachers" />
+          <Tab label="교사" value="teachers" />
           <Tab label="과목" value="courses" />
           <Tab label="주제" value="topics" />
           <Tab label="문제은행" value="questions" />
