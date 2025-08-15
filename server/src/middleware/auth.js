@@ -3,9 +3,13 @@ const jwt = require('jsonwebtoken');
 function verifyJwt(req, res, next) {
   try {
     const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.startsWith('Bearer ')
+    let token = authHeader.startsWith('Bearer ')
       ? authHeader.slice('Bearer '.length)
       : null;
+    // 쿠키에서 토큰 폴백
+    if (!token && req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
     if (!token) {
       return res.status(401).json({ message: '인증 토큰이 필요합니다.' });
     }

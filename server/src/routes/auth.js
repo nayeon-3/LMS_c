@@ -73,6 +73,7 @@ function buildLoginHandler(requiredRole) {
   return async (req, res) => {
     try {
       const { id, username, password } = req.body || {};
+      console.log(`[AUTH] Login attempt role=${requiredRole}, id/username=${username || id}`);
       const identifier = (username || id || '').trim();
       if (!identifier || !password) {
         return res.status(400).json({ message: '아이디와 비밀번호를 모두 입력해주세요.' });
@@ -84,6 +85,7 @@ function buildLoginHandler(requiredRole) {
       const authSource = envSource.includes('mongo') ? 'mongo'
                         : (envSource.includes('postg') || envSource === 'pg') ? 'postgres'
                         : '';
+      console.log(`[AUTH] Using auth source='${authSource || 'auto'}'`);
       if (authSource === 'mongo') {
         user = await findUserFromMongo(identifier, requiredRole);
       } else if (authSource === 'postgres' || authSource === 'postgresql') {
@@ -93,6 +95,7 @@ function buildLoginHandler(requiredRole) {
         user = await findUserFromMongo(identifier, requiredRole);
         if (!user) user = await findUserFromPostgres(identifier, requiredRole);
       }
+      console.log(`[AUTH] User lookup result: ${user ? 'FOUND' : 'NOT FOUND'}`);
       if (!user) {
         return res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
       }
@@ -108,17 +111,31 @@ function buildLoginHandler(requiredRole) {
         // 개발 초기 단계 호환: 해시가 아니면 평문 비교
         match = password === user.password;
       }
+      console.log(`[AUTH] Password match: ${match}`);
       if (!match) {
         return res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
       }
 
       const token = issueJwtToken(user);
+      // 쿠키 설정 (HttpOnly)
+      const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+      const twoHoursMs = 2 * 60 * 60 * 1000;
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProd, // 프로덕션에서만 secure
+        sameSite: 'lax',
+        maxAge: twoHoursMs,
+        path: '/',
+      });
+
       return res.status(200).json({
         token,
         user: { id: user.id, username: user.username, role: user.role }
       });
     } catch (err) {
-      return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+      console.error('[AUTH] Login error:', err);
+      const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+      return res.status(500).json({ message: isProd ? '서버 오류가 발생했습니다.' : `서버 오류: ${err?.message || err}` });
     }
   };
 }
