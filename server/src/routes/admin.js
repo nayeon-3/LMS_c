@@ -3,6 +3,9 @@ const { verifyJwt, requireRole } = require('../middleware/auth');
 
 // 메모리 기반 간단 저장소 (데모용)
 const state = {
+  admins: [
+    { id: 'admin1', username: '관리자1', email: 'admin1@example.com' },
+  ],
   students: [
     { id: 'S001', name: '홍길동', email: 'hong@example.com', classroom: '1-1' },
   ],
@@ -27,6 +30,11 @@ const state = {
       explanation: '스택은 후입선출(LIFO) 구조입니다.',
     },
   ],
+  settings: {
+    siteTitle: 'LMS 시스템',
+    allowSelfSignup: false,
+    announcement: '',
+  },
 };
 
 const router = express.Router();
@@ -50,6 +58,24 @@ function removeWhere(list, predicate) {
   if (index >= 0) list.splice(index, 1);
   return index >= 0;
 }
+
+// 학생 관리
+// 관리자 계정 관리
+router.get('/admins', (req, res) => {
+  res.json({ items: state.admins });
+});
+
+router.post('/admins', (req, res) => {
+  const { id, username, email } = req.body || {};
+  if (!id || !username) return res.status(400).json({ message: 'id와 username은 필수입니다.' });
+  const created = upsert(state.admins, (a) => a.id === id, { id, username, email });
+  res.status(201).json(created);
+});
+
+router.delete('/admins/:id', (req, res) => {
+  const ok = removeWhere(state.admins, (a) => a.id === req.params.id);
+  return ok ? res.json({ ok: true }) : res.status(404).json({ message: '존재하지 않습니다.' });
+});
 
 // 학생 관리
 router.get('/students', (req, res) => {
@@ -118,9 +144,6 @@ router.delete('/topics/:id', (req, res) => {
   const ok = removeWhere(state.topics, (t) => t.id === req.params.id);
   return ok ? res.json({ ok: true }) : res.status(404).json({ message: '존재하지 않습니다.' });
 });
-
-module.exports = router;
-
 // 문제은행 관리
 router.get('/questions', (req, res) => {
   res.json({ items: state.questions });
@@ -143,5 +166,43 @@ router.delete('/questions/:id', (req, res) => {
   const ok = removeWhere(state.questions, (q) => q.id === req.params.id);
   return ok ? res.json({ ok: true }) : res.status(404).json({ message: '존재하지 않습니다.' });
 });
+
+// 시스템 설정
+router.get('/settings', (req, res) => {
+  res.json({ ...state.settings });
+});
+
+router.post('/settings', (req, res) => {
+  const { siteTitle, allowSelfSignup, announcement } = req.body || {};
+  if (typeof siteTitle !== 'undefined') state.settings.siteTitle = String(siteTitle);
+  if (typeof allowSelfSignup !== 'undefined') state.settings.allowSelfSignup = !!allowSelfSignup;
+  if (typeof announcement !== 'undefined') state.settings.announcement = String(announcement);
+  res.status(201).json({ ...state.settings });
+});
+
+// 모니터링/메트릭
+router.get('/metrics', (req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    now: new Date().toISOString(),
+    uptimeSec: process.uptime(),
+    memory: {
+      rss: mem.rss,
+      heapTotal: mem.heapTotal,
+      heapUsed: mem.heapUsed,
+      external: mem.external,
+    },
+    counts: {
+      admins: state.admins.length,
+      students: state.students.length,
+      teachers: state.teachers.length,
+      courses: state.courses.length,
+      topics: state.topics.length,
+      questions: state.questions.length,
+    },
+  });
+});
+
+module.exports = router;
 
 

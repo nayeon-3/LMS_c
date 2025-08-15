@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Typography, Tabs, Tab, Box, Stack, TextField, Button, Divider, IconButton, Alert } from '@mui/material';
+import { Container, Typography, Tabs, Tab, Box, Stack, TextField, Button, Divider, IconButton, Alert, Checkbox, FormControlLabel } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuthStore } from '../../store/auth';
 
@@ -7,9 +7,12 @@ type Student = { id: string; name: string; email?: string; classroom?: string };
 type Teacher = { id: string; name: string; email?: string };
 type Course = { code: string; title: string; description?: string; teacherId?: string };
 type Topic = { id: string; courseCode: string; name: string; description?: string };
+type Admin = { id: string; username: string; email?: string };
+type Settings = { siteTitle: string; allowSelfSignup: boolean; announcement: string };
+type Metrics = { now: string; uptimeSec: number; memory: { rss: number; heapTotal: number; heapUsed: number; external: number }; counts: Record<string, number> };
 
 type Question = { id: string; type: string; difficulty: string; topicId: string; text: string; choices?: string[]; answer?: string; explanation?: string };
-type TabKey = 'students' | 'teachers' | 'courses' | 'topics' | 'questions';
+type TabKey = 'admins' | 'students' | 'teachers' | 'courses' | 'topics' | 'questions' | 'settings';
 
 function useApi() {
   const token = useAuthStore((s) => s.token);
@@ -42,6 +45,61 @@ function SectionHeader({ title }: { title: string }) {
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
       <Typography variant="h5">{title}</Typography>
+    </Stack>
+  );
+}
+
+function AdminsPanel() {
+  const { request } = useApi();
+  const [items, setItems] = useState<Admin[]>([]);
+  const [form, setForm] = useState<Admin>({ id: '', username: '', email: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    const data = await request('/admin/admins');
+    setItems(data.items || []);
+  }
+
+  useEffect(() => {
+    load().catch((e) => setError(e.message));
+  }, []);
+
+  async function save() {
+    setError(null);
+    await request('/admin/admins', { method: 'POST', body: JSON.stringify(form) });
+    setForm({ id: '', username: '', email: '' });
+    await load();
+  }
+
+  async function remove(id: string) {
+    setError(null);
+    await request(`/admin/admins/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await load();
+  }
+
+  return (
+    <Stack spacing={3}>
+      <SectionHeader title="관리자 계정 관리" />
+      {error ? <Alert severity="error">{error}</Alert> : null}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <TextField label="관리자ID" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
+        <TextField label="이름(표시명)" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+        <TextField label="이메일" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <Button variant="contained" onClick={save}>추가/수정</Button>
+      </Stack>
+      <Divider />
+      <Stack spacing={1}>
+        {items.map((a) => (
+          <Stack key={a.id} direction="row" alignItems="center" spacing={2}>
+            <Box sx={{ width: 160 }}><Typography variant="body2">{a.id}</Typography></Box>
+            <Box sx={{ flex: 1 }}><Typography>{a.username}</Typography></Box>
+            <Box sx={{ width: 220 }}><Typography variant="body2">{a.email}</Typography></Box>
+            <IconButton aria-label="delete" color="error" onClick={() => remove(a.id)}>
+              <DeleteIcon />
+            </IconButton>
+          </Stack>
+        ))}
+      </Stack>
     </Stack>
   );
 }
@@ -345,6 +403,82 @@ function QuestionsPanel() {
     </Stack>
   );
 }
+
+function SettingsPanel() {
+  const { request } = useApi();
+  const [settings, setSettings] = useState<Settings>({ siteTitle: '', allowSelfSignup: false, announcement: '' });
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadAll() {
+    const [s, m] = await Promise.all([
+      request('/admin/settings'),
+      request('/admin/metrics'),
+    ]);
+    setSettings(s);
+    setMetrics(m);
+  }
+
+  useEffect(() => {
+    loadAll().catch((e) => setError(e.message));
+  }, []);
+
+  async function save() {
+    setError(null);
+    const next = await request('/admin/settings', { method: 'POST', body: JSON.stringify(settings) });
+    setSettings(next);
+  }
+
+  async function refreshMetrics() {
+    setError(null);
+    const m = await request('/admin/metrics');
+    setMetrics(m);
+  }
+
+  return (
+    <Stack spacing={3}>
+      <SectionHeader title="시스템 설정 및 모니터링" />
+      {error ? <Alert severity="error">{error}</Alert> : null}
+      <Stack spacing={2}>
+        <TextField label="사이트 제목" value={settings.siteTitle} onChange={(e) => setSettings({ ...settings, siteTitle: e.target.value })} />
+        <FormControlLabel
+          control={<Checkbox checked={settings.allowSelfSignup} onChange={(e) => setSettings({ ...settings, allowSelfSignup: e.target.checked })} />}
+          label="사용자 자가 회원가입 허용"
+        />
+        <TextField label="공지사항" value={settings.announcement} onChange={(e) => setSettings({ ...settings, announcement: e.target.value })} multiline minRows={2} />
+        <Button variant="contained" onClick={save}>설정 저장</Button>
+      </Stack>
+      <Divider />
+      <Stack spacing={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4}>
+          <Box>
+            <Typography variant="subtitle2">서버 시간</Typography>
+            <Typography variant="body2">{metrics?.now || '-'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2">업타임(초)</Typography>
+            <Typography variant="body2">{metrics?.uptimeSec ?? '-'}</Typography>
+          </Box>
+        </Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4}>
+          <Box>
+            <Typography variant="subtitle2">메모리(RSS)</Typography>
+            <Typography variant="body2">{metrics ? metrics.memory.rss : '-'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2">Heap Used/Total</Typography>
+            <Typography variant="body2">{metrics ? `${metrics.memory.heapUsed} / ${metrics.memory.heapTotal}` : '-'}</Typography>
+          </Box>
+        </Stack>
+        <Stack>
+          <Typography variant="subtitle2">엔티티 개수</Typography>
+          <Typography variant="body2">{metrics ? Object.entries(metrics.counts).map(([k, v]) => `${k}: ${v}`).join(', ') : '-'}</Typography>
+        </Stack>
+        <Button variant="outlined" onClick={refreshMetrics}>메트릭 새로고침</Button>
+      </Stack>
+    </Stack>
+  );
+}
 function AdminDashboard() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -361,18 +495,22 @@ function AdminDashboard() {
       </Stack>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+          <Tab label="관리자" value="admins" />
           <Tab label="학생" value="students" />
           <Tab label="강사" value="teachers" />
           <Tab label="과목" value="courses" />
           <Tab label="주제" value="topics" />
           <Tab label="문제은행" value="questions" />
+          <Tab label="설정/모니터" value="settings" />
         </Tabs>
       </Box>
+      {tab === 'admins' && <AdminsPanel />}
       {tab === 'students' && <StudentsPanel />}
       {tab === 'teachers' && <TeachersPanel />}
       {tab === 'courses' && <CoursesPanel />}
       {tab === 'topics' && <TopicsPanel />}
       {tab === 'questions' && <QuestionsPanel />}
+      {tab === 'settings' && <SettingsPanel />}
     </Container>
   );
 }

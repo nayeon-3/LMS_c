@@ -6,45 +6,13 @@ const { query: pgQuery, connectDB: connectPostgres } = require('../config/databa
 
 const router = express.Router();
 
-// 데모 사용자 데이터 (서버 시작 시 해시 적용)
-const plainUsers = [
-  { id: '1', username: 'admin1', password: 'pass123', role: 'admin' },
-  { id: '2', username: 'teacher1', password: 'pass123', role: 'teacher' },
-  { id: '3', username: 'student1', password: 'pass123', role: 'student' }
-];
-
-const users = new Map();
-
-function initializeUsers() {
-  const saltRounds = 10;
-  plainUsers.forEach((u) => {
-    const hashed = bcrypt.hashSync(u.password, saltRounds);
-    users.set(u.username, { id: u.id, username: u.username, password: hashed, role: u.role });
-  });
-}
-
-initializeUsers();
-
 function issueJwtToken(user) {
   const secret = process.env.JWT_SECRET || 'dev_secret';
   const payload = { sub: user.id, username: user.username, role: user.role };
   return jwt.sign(payload, secret, { expiresIn: '2h' });
 }
 
-async function findUserFromMemory(identifier) {
-  // 먼저 username 키로 조회
-  let user = users.get(identifier);
-  if (user) return user;
-
-  // username 키로 없으면 id 매칭으로 조회
-  for (const value of users.values()) {
-    if (value.id === identifier) {
-      user = value;
-      break;
-    }
-  }
-  return user || null;
-}
+// 데모용 메모리 사용자 제거: 항상 DB에서만 조회
 
 async function findUserFromMongo(identifier, requiredRole) {
   try {
@@ -110,18 +78,20 @@ function buildLoginHandler(requiredRole) {
         return res.status(400).json({ message: '아이디와 비밀번호를 모두 입력해주세요.' });
       }
 
-      // 1) AUTH_SOURCE에 따라 DB에서 조회
+      // AUTH_SOURCE에 따라 DB에서만 조회 (메모리 폴백 금지)
       let user = null;
-      const authSource = (process.env.AUTH_SOURCE || '').toLowerCase();
+      const envSource = (process.env.AUTH_SOURCE || process.env.DB_STRATEGY || '').toLowerCase();
+      const authSource = envSource.includes('mongo') ? 'mongo'
+                        : (envSource.includes('postg') || envSource === 'pg') ? 'postgres'
+                        : '';
       if (authSource === 'mongo') {
         user = await findUserFromMongo(identifier, requiredRole);
       } else if (authSource === 'postgres' || authSource === 'postgresql') {
         user = await findUserFromPostgres(identifier, requiredRole);
-      }
-
-      // 2) 실패 시 메모리 사용자에서 조회 (개발용)
-      if (!user) {
-        user = await findUserFromMemory(identifier);
+      } else {
+        // 미설정 시 양쪽 DB를 순차 조회
+        user = await findUserFromMongo(identifier, requiredRole);
+        if (!user) user = await findUserFromPostgres(identifier, requiredRole);
       }
       if (!user) {
         return res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
