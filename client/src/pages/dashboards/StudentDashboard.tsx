@@ -23,7 +23,7 @@ function StudentDashboard() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<'test' | 'result'>('test');
+  const [tab, setTab] = useState<'stat' | 'test' | 'result'>('stat');
   // 통계용 데이터 (예시)
   const [stats, setStats] = useState<{ labels: string[]; scores: number[] }>({ labels: [], scores: [] });
 
@@ -63,8 +63,8 @@ function StudentDashboard() {
           {/* 왼쪽: 프로필 + 네비 */}
           <Box sx={{ minWidth: 280, maxWidth: 320 }}>
             <Paper sx={{ p: 3, mb: 3, textAlign: 'center' }}>
-              <Avatar src="https://i.ibb.co/6bQ7QpP/hello-kitty.png" sx={{ width: 80, height: 80, mx: 'auto', mb: 1 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>{user.username}</Typography>
+              <Avatar src="image.png" sx={{ width: 80, height: 80, mx: 'auto', mb: 1 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>{user.name || user.username}</Typography>
               <Typography color="text.secondary" fontSize={14} sx={{ mb: 1 }}>학생</Typography>
               <Button variant="outlined" size="small" onClick={logout} sx={{ mt: 1 }}>로그아웃</Button>
             </Paper>
@@ -74,18 +74,45 @@ function StudentDashboard() {
                 onChange={(_, v) => setTab(v)}
                 orientation="vertical"
                 variant="fullWidth"
-                sx={{ minHeight: 120 }}
+                sx={{ minHeight: 160 }}
                 TabIndicatorProps={{ style: { left: 0 } }}
               >
+                <Tab label="통계" value="stat" sx={{ alignItems: 'flex-start' }} />
                 <Tab label="테스트" value="test" sx={{ alignItems: 'flex-start' }} />
                 <Tab label="결과" value="result" sx={{ alignItems: 'flex-start' }} />
               </Tabs>
             </Paper>
           </Box>
-          {/* 중앙: 테스트/결과 */}
-          <Box sx={{ flex: 2, minWidth: 0 }}>
+          {/* 중앙: 탭에 따라 통계/테스트/결과 표시 */}
+          <Box sx={{ flex: 2, minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+            {tab === 'stat' && (
+              <Paper sx={{ p: 3, minWidth: 360, width: '100%' }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>통계 및 분석</Typography>
+                {stats.labels.length === 0 ? (
+                  <Typography color="text.secondary">통계 데이터가 없습니다.</Typography>
+                ) : (
+                  <Box>
+                    <Typography variant="body2">최근 점수 추이:</Typography>
+                    <Stack direction="row" spacing={2} alignItems="flex-end" sx={{ mt: 1 }}>
+                      {stats.scores.map((score, idx) => (
+                        <Box key={idx} sx={{ width: 40, height: score * 2, bgcolor: 'primary.main', color: '#fff', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', borderRadius: 1 }}>
+                          <span>{score}</span>
+                        </Box>
+                      ))}
+                    </Stack>
+                    <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+                      {stats.labels.map((label, idx) => (
+                        <Box key={idx} sx={{ width: 40, textAlign: 'center' }}>
+                          <Typography variant="caption">{label}</Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Paper>
+            )}
             {tab === 'test' && (
-              <Paper sx={{ p: 3, mb: 3 }}>
+              <Paper sx={{ p: 3, minWidth: 360, width: '100%' }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>온라인 테스트</Typography>
                 {tests.length === 0 ? (
                   <Typography color="text.secondary">응시 가능한 테스트가 없습니다.</Typography>
@@ -106,7 +133,7 @@ function StudentDashboard() {
               </Paper>
             )}
             {tab === 'result' && (
-              <Paper sx={{ p: 3, mb: 3 }}>
+              <Paper sx={{ p: 3, minWidth: 360, width: '100%' }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>최근 결과</Typography>
                 {results.length === 0 ? (
                   <Typography color="text.secondary">결과 데이터가 없습니다.</Typography>
@@ -134,33 +161,6 @@ function StudentDashboard() {
                 )}
               </Paper>
             )}
-          </Box>
-          {/* 오른쪽: 통계/그래프 */}
-          <Box sx={{ flex: 1, minWidth: 260 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>통계 및 분석</Typography>
-              {stats.labels.length === 0 ? (
-                <Typography color="text.secondary">통계 데이터가 없습니다.</Typography>
-              ) : (
-                <Box>
-                  <Typography variant="body2">최근 점수 추이:</Typography>
-                  <Stack direction="row" spacing={2} alignItems="flex-end" sx={{ mt: 1 }}>
-                    {stats.scores.map((score, idx) => (
-                      <Box key={idx} sx={{ width: 40, height: score * 2, bgcolor: 'primary.main', color: '#fff', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', borderRadius: 1 }}>
-                        <span>{score}</span>
-                      </Box>
-                    ))}
-                  </Stack>
-                  <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-                    {stats.labels.map((label, idx) => (
-                      <Box key={idx} sx={{ width: 40, textAlign: 'center' }}>
-                        <Typography variant="caption">{label}</Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
-              )}
-            </Paper>
           </Box>
         </Stack>
       )}

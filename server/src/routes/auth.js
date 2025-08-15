@@ -34,7 +34,8 @@ async function findUserFromMongo(identifier, requiredRole) {
       id: doc.id || String(doc._id),
       username: doc.username || doc.email || doc.id,
       password: doc.password,
-      role: doc.role
+      role: doc.role,
+      name: doc.name || doc.username || doc.email || doc.id
     };
   } catch (err) {
     return null;
@@ -49,7 +50,7 @@ async function findUserFromPostgres(identifier, requiredRole) {
   try {
     await connectPostgres();
     const sql = `
-      SELECT u.user_id, u.id AS login_id, u.password, r.name AS role
+      SELECT u.user_id, u.id AS login_id, u.password, r.name AS role, u.name AS name
       FROM users u
       JOIN roles r ON u.role_id = r.role_id
       WHERE (u.id = $1 OR u.email = $1) AND r.name = $2
@@ -63,6 +64,7 @@ async function findUserFromPostgres(identifier, requiredRole) {
       username: row.login_id,
       password: row.password,
       role: row.role,
+      name: row.name
     };
   } catch (err) {
     return null;
@@ -130,7 +132,7 @@ function buildLoginHandler(requiredRole) {
 
       return res.status(200).json({
         token,
-        user: { id: user.id, username: user.username, role: user.role }
+        user: { id: user.id, username: user.username, role: user.role, name: user.name }
       });
     } catch (err) {
       console.error('[AUTH] Login error:', err);

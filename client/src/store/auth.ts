@@ -7,6 +7,7 @@ type User = {
   id: string;
   username: string;
   role: Role;
+  name?: string;
 };
 
 type AuthState = {
